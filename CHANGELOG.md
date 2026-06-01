@@ -4,6 +4,16 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 
 ## [Unreleased]
 
+### Added — v0.2 PR1.5 (first real write path, demoed end-to-end)
+- `src/envelopes.ts`: `buildPostReceiptEnvelope()` + `tallyAmount()`. **17 envelope-shape tests** lock the wire format (sign convention, ISDEEMEDPOSITIVE, bill allocation, XML escaping, no VOUCHERNUMBER, etc).
+- `src/operations/post-receipt.ts`: `postReceipt()` ties all rings together (assertGate → confirmWrite → envelope build → client.send → audit). Includes `parsePostVoucherResponse()` with success/no-op detection.
+- `scripts/manual-post-receipt.mjs`: live 5-scenario demo (gate closed, decline, dry-run, real submit, audit tail).
+- `scripts/manual-post-bonus.mjs`: generalisation demo across multiple parties + destinations, plus client-side validation of bad inputs.
+- `scripts/diagnose-receipt.mjs`: debug utility for envelope variants.
+- **Lesson learned (the hard way):** the HEADER must include `<ID>Vouchers</ID>` for voucher imports. Without it, TallyPrime silently returns `<STATUS>0</STATUS>` with empty BODY, no LINEERROR. Codified in tests so it can never regress.
+- Verified live: vouchers 446 (₹1 FOODSTORIES → Cash), 447 (₹5 SENSALABS LLP → ICICI BANK), 448 (₹2.50 DASHFIT → Cash) all posted to ZOSMAAI test books with correct double-entry math.
+- `tsx` added as dev dep (`scripts/*.mjs` import `.ts` sources directly; Node's strip-types can't handle parameter properties).
+
 ### Added — v0.2 foundations (PR1: Ring 1 + Ring 2 stub + audit log + CI)
 - **Ring 1 — write gates**: `assertGate(cfg, category)` + `TallyWriteBlockedError` (code `GATE_CLOSED`) in `src/safety/gates.ts`. Every v0.2 write tool will call this as its first line.
 - **Ring 2 stub — confirmation panel**: `confirmWrite(ctx, preview, auditDir)` + `renderPreview()` in `src/ui/confirm.ts`. Deterministic preview body; never shows raw XML.

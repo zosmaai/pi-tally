@@ -50,8 +50,11 @@ These are non-negotiable. A write tool merged without them is a revert.
 
 Ordered by minimum-blast-radius first. Each is its own PR; each adds its HTN.
 
-- [ ] `tally_post_receipt` + HTN already shipped at `skills/pi-tally/htn/post-receipt.md`
-- [ ] `tally_post_payment` + HTN
+- [~] `tally_post_receipt` core (`src/operations/post-receipt.ts`) shipped PR1.5 — demoed live with vouchers 446/447/448 against ZOSMAAI test books. Still needs:
+  - LLM-callable `registerTool("tally_post_receipt", ...)` wiring in `src/tools/write/` so a fresh pi session exposes it
+  - HTN already exists at `skills/pi-tally/htn/post-receipt.md`
+  - **Bug:** preview shows bogus amounts (e.g. -₹10) and asks for confirmation BEFORE the build-time positive-amount guard fires. Move validation into the preview step so the user never sees an invalid preview.
+- [ ] `tally_post_payment` + HTN — mirror of receipt with Dr/Cr swapped
 - [ ] `tally_post_journal` + HTN
 - [ ] `tally_post_contra` + HTN
 
