@@ -50,18 +50,17 @@ These are non-negotiable. A write tool merged without them is a revert.
 
 Ordered by minimum-blast-radius first. Each is its own PR; each adds its HTN.
 
-- [~] `tally_post_receipt` core (`src/operations/post-receipt.ts`) shipped PR1.5 — demoed live with vouchers 446/447/448 against ZOSMAAI test books. Still needs:
-  - LLM-callable `registerTool("tally_post_receipt", ...)` wiring in `src/tools/write/` so a fresh pi session exposes it
-  - HTN already exists at `skills/pi-tally/htn/post-receipt.md`
-  - **Bug:** preview shows bogus amounts (e.g. -₹10) and asks for confirmation BEFORE the build-time positive-amount guard fires. Move validation into the preview step so the user never sees an invalid preview.
-- [ ] `tally_post_payment` + HTN — mirror of receipt with Dr/Cr swapped
+- [x] `tally_post_receipt` shipped PR2 — LLM-callable via `registerTool` (`src/tools/write/post-receipt.ts`). HTN at `skills/pi-tally/htn/post-receipt.md`. Validation-order wart fixed (input validated BEFORE confirm modal).
+- [x] `tally_post_payment` shipped PR2 — mirror of receipt with Dr/Cr swapped (`src/tools/write/post-payment.ts`). HTN: TODO.
+- [x] `tally_reverse_voucher` shipped PR2 — offsetting Payment voucher to undo a Receipt. The production path for cancellation since TallyPrime's XML gateway cannot truly delete vouchers (see memex card `tally-xml-cannot-truly-delete-vouchers`). v0.2 scope: Receipt→Payment reversal only.
 - [ ] `tally_post_journal` + HTN
 - [ ] `tally_post_contra` + HTN
+- [ ] `tally_create_ledger` (gated behind `masters`) + HTN — needed so write tools can auto-create missing parties on user opt-in.
 
 ### Quality-of-life
 
 - [ ] `idempotency.ts` — write tools accept optional `idempotencyKey`; client de-dups against a small on-disk SQLite/JSON index
-- [~] Dual audit log: human-readable JSONL in `~/.pi-tally/audit/YYYY-MM.jsonl` shipped PR1; machine-grep XML in `~/.pi-tally/audit/raw/` deferred until first write tool produces XML
+- [~] Dual audit log: human-readable JSONL in `~/.pi-tally/audit/YYYY-MM.jsonl` shipped PR1; machine-grep XML in `~/.pi-tally/audit/raw/` still deferred (write operations currently log envelope BYTES only, not the XML)
 - [x] CI: GitHub Actions matrix on Node 20 + 22 running `npm run typecheck` and `npm test` — shipped PR1 (`.github/workflows/ci.yml`)
 - [ ] Publish `0.2.0-alpha.0` to npm (`npm publish --access public --tag alpha`)
 
