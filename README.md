@@ -6,6 +6,10 @@
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![status: alpha](https://img.shields.io/badge/status-alpha-orange)]()
 
+![pi-tally live demo — gate-blocked call, validation error, structured tool outputs](docs/images/preview.png)
+
+*Above: a live pi session calling `tally_post_receipt` against TallyPrime. The first call is blocked by a closed write gate (Ring 1); the second is rejected synchronously by structural validation (negative amount); both produce structured errors the LLM can branch on without retrying.*
+
 ---
 
 ## What it does
