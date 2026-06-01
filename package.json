@@ -1,6 +1,6 @@
 {
   "name": "@zosmaai/pi-tally",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.0",
   "description": "Production-grade pi extension for operating TallyPrime — semantic accounting tools with GST math, bank reconciliation, bulk import, HTN-guided workflows, and four-ring write safety.",
   "type": "module",
   "keywords": [
