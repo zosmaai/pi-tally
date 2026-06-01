@@ -1,0 +1,63 @@
+{
+  "name": "@zosmaai/pi-tally",
+  "version": "0.1.0",
+  "description": "Production-grade pi extension for operating TallyPrime — semantic accounting tools with GST math, bank reconciliation, bulk import, HTN-guided workflows, and four-ring write safety.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "tally",
+    "tallyprime",
+    "accounting",
+    "gst",
+    "india",
+    "bookkeeping",
+    "htn",
+    "llm-tools"
+  ],
+  "homepage": "https://github.com/zosmaai/pi-tally",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zosmaai/pi-tally.git"
+  },
+  "bugs": "https://github.com/zosmaai/pi-tally/issues",
+  "license": "MIT",
+  "author": "zosmaai",
+  "engines": {
+    "node": ">=20"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "skills": [
+      "./skills/pi-tally"
+    ],
+    "image": "https://raw.githubusercontent.com/zosmaai/pi-tally/main/docs/images/preview.png"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "@earendil-works/pi-ai": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0",
+    "fast-check": "^3.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "src",
+    "skills",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ]
+}
