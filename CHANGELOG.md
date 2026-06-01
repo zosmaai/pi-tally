@@ -12,6 +12,7 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 - `scripts/diagnose-receipt.mjs`: debug utility for envelope variants.
 - **Lesson learned (the hard way):** the HEADER must include `<ID>Vouchers</ID>` for voucher imports. Without it, TallyPrime silently returns `<STATUS>0</STATUS>` with empty BODY, no LINEERROR. Codified in tests so it can never regress.
 - Verified live: vouchers 446 (₹1 FOODSTORIES → Cash), 447 (₹5 SENSALABS LLP → ICICI BANK), 448 (₹2.50 DASHFIT → Cash) all posted to ZOSMAAI test books with correct double-entry math.
+- **Cleanup proven:** `scripts/find-voucher-guids.mjs` + `scripts/probe-delete-variants.mjs` + `scripts/reverse-test-vouchers.mjs` walk through Tally's hostile delete API. Books restored to exact baseline via reversal Payment vouchers (452, 453, 454) — the textbook accounting fix. Lessons captured in memex (delete-via-XML doesn't work; use reversal entries; `TAGNAME=MasterID TAGVALUE=N Action=Alter ISDELETED=Yes` is accepted but doesn't actually delete).
 - `tsx` added as dev dep (`scripts/*.mjs` import `.ts` sources directly; Node's strip-types can't handle parameter properties).
 
 ### Added — v0.2 foundations (PR1: Ring 1 + Ring 2 stub + audit log + CI)
