@@ -7,25 +7,21 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { StringEnum } from "@earendil-works/pi-ai";
 import { TallyClient } from "./client.js";
 import { DEFAULT_CONFIG, loadConfig, saveUserConfig } from "./config.js";
-import type { WriteGateState } from "./types.js";
-
-type GateCategory = keyof WriteGateState;
-
-const GATE_CATEGORIES: GateCategory[] = ["masters", "vouchers", "bulkImport", "rawXml"];
+import { appendAuditEvent, auditDir, readAuditEvents } from "./audit/log.js";
+import type { GateCategory } from "./safety/gates.js";
 
 export function registerCommands(pi: ExtensionAPI): void {
   pi.registerCommand("tally", {
-    description: "pi-tally controls: setup | health | enable-writes | disable-writes | use-company | lock-down",
+    description: "pi-tally controls: setup | health | enable-writes | disable-writes | use-company | audit | lock-down",
     handler: async (args, ctx) => {
       const [sub, ...rest] = args.trim().split(/\s+/);
       switch (sub) {
         case "":
         case "help":
           ctx.ui.notify(
-            "/tally setup | health | enable-writes <category> | disable-writes <category> | use-company <name> | lock-down",
+            "/tally setup | health | enable-writes <category> | disable-writes <category> | use-company <name> | audit tail [n] | lock-down",
             "info",
           );
           return;
@@ -43,6 +39,9 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         case "use-company":
           await runUseCompany(ctx, rest.join(" "));
+          return;
+        case "audit":
+          await runAudit(ctx, rest);
           return;
         case "lock-down":
           ctx.ui.notify(
@@ -163,13 +162,51 @@ async function toggleGate(
       "Open write gate",
       `Open '${category}' gate? This allows the LLM to create/modify Tally data of this category. Each individual write will still ask for confirmation.`,
     );
-    if (!ok) return;
+    if (!ok) {
+      appendAuditEvent(auditDir(), {
+        kind: "gate.open-declined",
+        category,
+        actor: "user",
+      });
+      return;
+    }
   }
 
   const cfg = loadConfig(ctx.cwd);
   const next = { ...cfg.writeGates, [category]: open };
   saveUserConfig({ writeGates: next });
+  appendAuditEvent(auditDir(), {
+    kind: open ? "gate.opened" : "gate.closed",
+    category,
+    actor: "user",
+  });
   ctx.ui.notify(`Gate '${category}' is now ${open ? "🟢 OPEN" : "🔴 CLOSED"}.`, "info");
+}
+
+async function runAudit(
+  ctx: Parameters<Parameters<ExtensionAPI["registerCommand"]>[1]["handler"]>[1],
+  rest: string[],
+): Promise<void> {
+  const [action, nRaw] = rest;
+  if (action !== "tail") {
+    ctx.ui.notify("Usage: /tally audit tail [n]   (n defaults to 20)", "warning");
+    return;
+  }
+  const n = Math.max(1, Math.min(500, Number.parseInt(nRaw ?? "20", 10) || 20));
+  const all = readAuditEvents(auditDir());
+  if (all.length === 0) {
+    ctx.ui.notify("Audit log is empty.", "info");
+    return;
+  }
+  const tail = all.slice(-n);
+  const lines = tail.map((e) => {
+    const extras = Object.entries(e)
+      .filter(([k]) => k !== "id" && k !== "ts" && k !== "kind")
+      .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
+      .join(" ");
+    return `${e.ts}  ${e.kind.padEnd(20)}  ${extras}`;
+  });
+  ctx.ui.notify(`Last ${tail.length} of ${all.length} audit events:\n${lines.join("\n")}`, "info");
 }
 
 async function runUseCompany(

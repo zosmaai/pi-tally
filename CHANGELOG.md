@@ -4,6 +4,14 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 
 ## [Unreleased]
 
+### Added — v0.2 foundations (PR1: Ring 1 + Ring 2 stub + audit log + CI)
+- **Ring 1 — write gates**: `assertGate(cfg, category)` + `TallyWriteBlockedError` (code `GATE_CLOSED`) in `src/safety/gates.ts`. Every v0.2 write tool will call this as its first line.
+- **Ring 2 stub — confirmation panel**: `confirmWrite(ctx, preview, auditDir)` + `renderPreview()` in `src/ui/confirm.ts`. Deterministic preview body; never shows raw XML.
+- **Audit log**: append-only JSONL at `~/.pi-tally/audit/YYYY-MM.jsonl` (`src/audit/log.ts`). `appendAuditEvent` / `readAuditEvents` / `auditFileFor`. Monthly partitions, corrupt-line tolerance.
+- **`/tally audit tail [n]`** subcommand and gate toggles now emit `gate.opened` / `gate.closed` / `gate.open-declined` events.
+- **vitest + fast-check** wired (`vitest.config.ts`). 23 unit tests across `test/safety/`, `test/audit/`, `test/ui/`.
+- **CI**: `.github/workflows/ci.yml` matrix on Node 20 + 22 running `typecheck` + `test`.
+
 ### Added — v0.1 MVP (read-only)
 - TallyClient transport layer (XML over HTTP, Prime 7.0+ JSON auto-detect)
 - Read tools: `tally_health`, `tally_list_companies`, `tally_use_company`, `tally_list_ledgers`, `tally_list_groups`, `tally_list_voucher_types`, `tally_list_vouchers`, `tally_get_voucher`, `tally_get_report`, `tally_get_outstanding`, `tally_query_collection`

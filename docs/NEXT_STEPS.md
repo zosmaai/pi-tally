@@ -28,14 +28,14 @@ Goal: end the read-only era with the *smallest* possible safe write surface and 
 
 These are non-negotiable. A write tool merged without them is a revert.
 
-- [ ] **Ring 1 — per-category write gates** (`src/config.ts`)
-  - Persist `gates: { masters, vouchers, bulkImport, rawXml }` in `~/.pi-tally/config.json`
-  - All default `false`; `/tally gate open <name>` and `/tally gate close <name>` slash-commands
-  - Every write tool's `handler` opens with `assertGate("vouchers")` (etc.) → throws structured error the LLM cannot mask
-- [ ] **Ring 2 — pre-submit confirmation panel** (`src/ui/confirm.ts`)
-  - Renders parsed preview (party, date, amounts, GST split, narration) — never raw XML
-  - Wired via `pi-tui` modal; cancel returns a tool result the LLM understands as "user declined"
-  - Confirmation event written to audit log even on cancel
+- [x] **Ring 1 — per-category write gates** (`src/safety/gates.ts`) — shipped PR1
+  - Persisted gates in `~/.pi-tally/config.json` (already in v0.1)
+  - `assertGate(cfg, category)` throws `TallyWriteBlockedError { code: "GATE_CLOSED", category, userAction }`
+  - Toggled via `/tally enable-writes <category>` / `/tally disable-writes <category>` (existing v0.1 commands now emit audit events)
+- [x] **Ring 2 stub — pre-submit confirmation** (`src/ui/confirm.ts`) — shipped PR1
+  - `confirmWrite(ctx, preview, auditDir)` + deterministic `renderPreview()`
+  - Uses host `ctx.ui.confirm()` modal; richer pi-tui panel deferred until first write tool needs it
+  - Both accept and decline write an audit event (`write.confirmed` / `write.declined`)
 - [ ] **Ring 3 — deterministic math module** (`src/money/`)
   - `gst.ts`: intra/inter classification, slab table, reverse charge, cess
   - `inr.ts`: integer-paisa arithmetic, Indian-numbering formatter (already used in read path — promote here)
@@ -58,8 +58,8 @@ Ordered by minimum-blast-radius first. Each is its own PR; each adds its HTN.
 ### Quality-of-life
 
 - [ ] `idempotency.ts` — write tools accept optional `idempotencyKey`; client de-dups against a small on-disk SQLite/JSON index
-- [ ] Dual audit log: human-readable JSONL in `~/.pi-tally/audit/YYYY-MM.jsonl` + machine-grep XML in `~/.pi-tally/audit/raw/`
-- [ ] CI: GitHub Actions matrix on Node 20 + 22 running `npm run typecheck` and `npm test`
+- [~] Dual audit log: human-readable JSONL in `~/.pi-tally/audit/YYYY-MM.jsonl` shipped PR1; machine-grep XML in `~/.pi-tally/audit/raw/` deferred until first write tool produces XML
+- [x] CI: GitHub Actions matrix on Node 20 + 22 running `npm run typecheck` and `npm test` — shipped PR1 (`.github/workflows/ci.yml`)
 - [ ] Publish `0.2.0-alpha.0` to npm (`npm publish --access public --tag alpha`)
 
 ---
@@ -111,4 +111,10 @@ When a section is fully shipped, move it under a `## Done` heading at the bottom
 
 ## Done
 
-*(empty — v0.1 scaffold is the baseline this file measures from)*
+### PR1 — Ring 1 + Ring 2 stub + audit log + CI (2026-06-01, branch `feat/ring-1-gates-and-audit`)
+- `src/safety/gates.ts` with `assertGate` + `TallyWriteBlockedError`
+- `src/ui/confirm.ts` with `confirmWrite` + `renderPreview`
+- `src/audit/log.ts` with monthly-rotated JSONL append-only log
+- `commands.ts` wired: gate toggles emit audit events; new `/tally audit tail [n]`
+- `vitest.config.ts` + 23 unit tests (safety, audit, ui)
+- `.github/workflows/ci.yml` Node 20 + 22 matrix
