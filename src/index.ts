@@ -13,8 +13,12 @@
  *   - /tally commands (setup, health, enable-writes, disable-writes,
  *     use-company, lock-down)
  *
- * Write tools and bulk-import land in v0.2+ behind their gates. The framework
- * (config, audit log, commands) is wired now so v0.2 is a pure additive change.
+ * v0.2 write tools (gated):
+ *   - tally_post_receipt    (receipt voucher — money received)
+ *   - tally_post_payment    (payment voucher — money paid out)
+ *   - tally_reverse_voucher (offsetting payment to undo a receipt)
+ *
+ * Bulk-import + masters tools land in v0.3 behind their own gates.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -22,9 +26,11 @@ import { TallyClient } from "./client.js";
 import { loadConfig } from "./config.js";
 import { registerCommands } from "./commands.js";
 import { registerReadTools } from "./tools/read/index.js";
+import { registerWriteTools } from "./tools/write/index.js";
 
 export default function piTally(pi: ExtensionAPI): void {
   registerReadTools(pi);
+  registerWriteTools(pi);
   registerCommands(pi);
 
   pi.on("session_start", async (_event, ctx) => {

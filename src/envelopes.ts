@@ -258,6 +258,8 @@ export interface RawCollectionOptions extends StaticVars {
 // Voucher posting (write)
 // --------------------------------------------------------------------------
 
+export type BillRefType = "On Account" | "Advance" | "Agst Ref" | "New Ref";
+
 export interface PostReceiptInput {
   company: string;
   /** Customer / Sundry Debtor ledger. Will be CREDITED. */
@@ -276,7 +278,23 @@ export interface PostReceiptInput {
    * own classification. v0.2 ships only "On Account" — the planner-level
    * intelligence (matching outstanding bills) ships with the HTN in PR3+.
    */
-  billRef?: { name: string; type: "On Account" | "Advance" | "Agst Ref" | "New Ref" };
+  billRef?: { name: string; type: BillRefType };
+}
+
+export interface PostPaymentInput {
+  company: string;
+  /** Party being paid (Sundry Creditor / Debtor / Expense ledger). Will be DEBITED. */
+  party: string;
+  /** Cash or Bank ledger the money leaves from. Will be CREDITED. */
+  sourceLedger: string;
+  /** ISO date YYYY-MM-DD. */
+  date: string;
+  /** Positive rupee amount. */
+  amount: number;
+  /** Optional free-text narration. */
+  narration?: string;
+  /** Optional bill reference (e.g. "On Account" for advances/refunds, "Agst Ref" for settling a known bill). */
+  billRef?: { name: string; type: BillRefType };
 }
 
 /**
@@ -337,6 +355,73 @@ ${billXml}     </ALLLEDGERENTRIES.LIST>
       <LEDGERNAME>${xmlEscape(input.destinationLedger)}</LEDGERNAME>
       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
       <AMOUNT>${negAmt}</AMOUNT>
+     </ALLLEDGERENTRIES.LIST>
+    </VOUCHER>
+   </TALLYMESSAGE>
+  </DATA>
+ </BODY>
+</ENVELOPE>`;
+}
+
+/**
+ * Build a Payment voucher import envelope. The mirror of
+ * `buildPostReceiptEnvelope` with Dr/Cr sides swapped.
+ *
+ * Tally Payment convention:
+ *   - Party    (debited)   → ISDEEMEDPOSITIVE="Yes", AMOUNT negative
+ *   - Cash/Bank (credited) → ISDEEMEDPOSITIVE="No",  AMOUNT positive
+ *
+ * Use cases:
+ *   - Paying a vendor (Sundry Creditor)
+ *   - Refunding a customer (Sundry Debtor as party)
+ *   - Posting a reversal of an earlier Receipt
+ */
+export function buildPostPaymentEnvelope(input: PostPaymentInput): string {
+  if (!(input.amount > 0)) {
+    throw new Error(`Payment amount must be positive, got ${input.amount}`);
+  }
+  const date = toTallyDate(input.date);
+  const amt = tallyAmount(input.amount);
+  const negAmt = tallyAmount(-input.amount);
+  const narration = input.narration ?? "";
+  // Bill allocation amount mirrors the party side (negative on payment).
+  const billXml = input.billRef
+    ? `      <BILLALLOCATIONS.LIST>
+       <NAME>${xmlEscape(input.billRef.name)}</NAME>
+       <BILLTYPE>${input.billRef.type}</BILLTYPE>
+       <AMOUNT>${negAmt}</AMOUNT>
+      </BILLALLOCATIONS.LIST>\n`
+    : "";
+  return `<ENVELOPE>
+ <HEADER>
+  <VERSION>1</VERSION>
+  <TALLYREQUEST>Import</TALLYREQUEST>
+  <TYPE>Data</TYPE>
+  <ID>Vouchers</ID>
+ </HEADER>
+ <BODY>
+  <DESC>
+   <STATICVARIABLES>
+    <SVCURRENTCOMPANY>${xmlEscape(input.company)}</SVCURRENTCOMPANY>
+   </STATICVARIABLES>
+  </DESC>
+  <DATA>
+   <TALLYMESSAGE xmlns:UDF="TallyUDF">
+    <VOUCHER VCHTYPE="Payment" ACTION="Create" OBJVIEW="Accounting Voucher View">
+     <DATE>${date}</DATE>
+     <EFFECTIVEDATE>${date}</EFFECTIVEDATE>
+     <NARRATION>${xmlEscape(narration)}</NARRATION>
+     <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+     <PARTYLEDGERNAME>${xmlEscape(input.party)}</PARTYLEDGERNAME>
+     <ALLLEDGERENTRIES.LIST>
+      <LEDGERNAME>${xmlEscape(input.party)}</LEDGERNAME>
+      <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+      <AMOUNT>${negAmt}</AMOUNT>
+${billXml}     </ALLLEDGERENTRIES.LIST>
+     <ALLLEDGERENTRIES.LIST>
+      <LEDGERNAME>${xmlEscape(input.sourceLedger)}</LEDGERNAME>
+      <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+      <AMOUNT>${amt}</AMOUNT>
      </ALLLEDGERENTRIES.LIST>
     </VOUCHER>
    </TALLYMESSAGE>

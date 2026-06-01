@@ -29,6 +29,7 @@ import { appendAuditEvent } from "../audit/log.js";
 import { buildPostReceiptEnvelope, type PostReceiptInput } from "../envelopes.js";
 import { formatINR } from "../config.js";
 import { extractTag } from "../parse.js";
+import { validatePostReceiptInput } from "./validate.js";
 
 type ExtensionCtx = Parameters<
   Parameters<ExtensionAPI["registerCommand"]>[1]["handler"]
@@ -97,6 +98,11 @@ export async function postReceipt(
 ): Promise<PostReceiptResult> {
   // ---- Ring 1 ----
   assertGate(cfg, "vouchers");
+
+  // ---- Pre-confirm validation (PR2 wart fix) ----
+  // Run cheap structural checks BEFORE rendering the preview so the human
+  // never sees a junk modal to click "no" on.
+  validatePostReceiptInput(opts);
 
   // ---- Preview (Ring 2 input) ----
   const preview: WritePreview = {
