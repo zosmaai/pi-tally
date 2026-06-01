@@ -43,18 +43,20 @@ The wizard probes Tally on `http://localhost:9000`, lists your companies, picks 
 
 ## 30-second demo
 
+> The company, numbers, and party names below are **illustrative** — a fictional SMB used purely to show the shape of the conversation. Your own Tally data never leaves your machine.
+
 ```
 You ▸ How are we doing financially?
 
 pi  ▸ [calls tally_health]
-       Connected to ZOSMAAI SOLUTIONS PRIVATE LIMITED (books from 1-Apr-2025).
+       Connected to Aurora Foods Pvt Ltd (books from 1-Apr-2025).
        Write gates: all closed.
 
        [calls tally_get_report("TrialBalance"), ("ProfitLoss"), tally_get_outstanding("receivables")]
 
        Snapshot as of 31-May-2025:
        • Cash on hand: ₹0  | Bank: ₹4,12,500
-       • Trade receivables: ₹2,34,000 (₹1,20,000 over 30 days — chase Acme & Beta)
+       • Trade receivables: ₹2,34,000 (₹1,20,000 over 30 days — chase Acme Corp & Beta LLP)
        • Trade payables: ₹15,661
        • Revenue YTD: ₹6,80,000  | Net profit YTD: ₹2,15,500
 

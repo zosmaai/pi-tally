@@ -59,7 +59,7 @@ If the user does not specify a date:
 
 **You — after pre-flight + executing tree:**
 
-> Quick snapshot as of 1-Jun-2026 for **ZOSMAAI SOLUTIONS PRIVATE LIMITED**:
+> Quick snapshot as of 1-Jun-2026 for **Aurora Foods Pvt Ltd** *(illustrative — fictional company)*:
 >
 > Liquid funds total **₹4.12L** — almost all of it in HDFC current account; cash on hand is nil. Customers owe us **₹2.34L** across 5 parties; the bulk (**₹1.20L**) is more than 30 days old — Acme Corp and Beta LLP are the names to chase. We owe vendors **₹15.6K** total. YTD revenue is **₹6.80L** with a net profit of **₹2.15L** (about 32% margin), which is healthy.
 >

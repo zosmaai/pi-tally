@@ -70,7 +70,7 @@ Each compound step expands per its own `htn/` file:
 Maintain a running checklist in pi's session log as you go:
 
 ```
-☑ Scope confirmed: May 2025, ZOSMAAI SOLUTIONS PRIVATE LIMITED
+☑ Scope confirmed: May 2025, Aurora Foods Pvt Ltd  *(illustrative)*
 ☑ Opening tied to prior close (₹4,21,500 cash+bank)
 ☐ HDFC bank rec   ← in progress
 ☐ ICICI bank rec
@@ -105,7 +105,7 @@ Always stop and wait for human acknowledgement at these gates:
 
 **You — after pre-flight:**
 
-> Closing **May 2025** for **ZOSMAAI SOLUTIONS PRIVATE LIMITED** — here's what I'll walk you through (8 subtasks):
+> Closing **May 2025** for **Aurora Foods Pvt Ltd** *(illustrative — fictional company)* — here's what I'll walk you through (8 subtasks):
 >
 > 1. Confirm opening position ties to April close
 > 2. Bank reconciliation for each bank ledger
