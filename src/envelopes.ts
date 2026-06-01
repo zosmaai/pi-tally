@@ -15,6 +15,18 @@
 import type { ReportName } from "./types.js";
 
 // --------------------------------------------------------------------------
+// Money on the wire
+// --------------------------------------------------------------------------
+
+/**
+ * Format an INR amount for Tally's AMOUNT element. Always 2 decimals,
+ * always plain ASCII (no ₹, no thousands separators). Sign included.
+ */
+export function tallyAmount(n: number): string {
+  return n.toFixed(2);
+}
+
+// --------------------------------------------------------------------------
 // XML primitives
 // --------------------------------------------------------------------------
 
@@ -240,6 +252,97 @@ export interface RawCollectionOptions extends StaticVars {
   collectionName: string;
   type: string; // e.g. "Ledger", "Voucher", "StockItem"
   fetch?: string[]; // field list
+}
+
+// --------------------------------------------------------------------------
+// Voucher posting (write)
+// --------------------------------------------------------------------------
+
+export interface PostReceiptInput {
+  company: string;
+  /** Customer / Sundry Debtor ledger. Will be CREDITED. */
+  party: string;
+  /** Cash or Bank ledger that receives the money. Will be DEBITED. */
+  destinationLedger: string;
+  /** ISO date YYYY-MM-DD. */
+  date: string;
+  /** Positive rupee amount. Anything <= 0 is a bug at the caller. */
+  amount: number;
+  /** Optional free-text narration. */
+  narration?: string;
+  /**
+   * Optional bill reference. If supplied, attaches as `Agst Ref` (when
+   * settling an existing bill) or `On Account` / `Advance` per Tally's
+   * own classification. v0.2 ships only "On Account" — the planner-level
+   * intelligence (matching outstanding bills) ships with the HTN in PR3+.
+   */
+  billRef?: { name: string; type: "On Account" | "Advance" | "Agst Ref" | "New Ref" };
+}
+
+/**
+ * Build a Receipt voucher import envelope.
+ *
+ * Tally voucher posting convention:
+ *   - Cash/Bank (debited)  → ISDEEMEDPOSITIVE="Yes", AMOUNT negative
+ *   - Party    (credited)  → ISDEEMEDPOSITIVE="No",  AMOUNT positive
+ *
+ * Voucher number is omitted so Tally auto-numbers per its own voucher-type
+ * config. Caller decides idempotency separately.
+ */
+export function buildPostReceiptEnvelope(input: PostReceiptInput): string {
+  if (!(input.amount > 0)) {
+    throw new Error(`Receipt amount must be positive, got ${input.amount}`);
+  }
+  const date = toTallyDate(input.date);
+  const amt = tallyAmount(input.amount);
+  const negAmt = tallyAmount(-input.amount);
+  const narration = input.narration ?? "";
+  const billXml = input.billRef
+    ? `      <BILLALLOCATIONS.LIST>
+       <NAME>${xmlEscape(input.billRef.name)}</NAME>
+       <BILLTYPE>${input.billRef.type}</BILLTYPE>
+       <AMOUNT>${amt}</AMOUNT>
+      </BILLALLOCATIONS.LIST>\n`
+    : "";
+  // ID="Vouchers" in the HEADER tells Tally which built-in import report
+  // to run. Omitting it makes Tally silently return STATUS=0 with empty
+  // BODY — no LINEERROR, no ERRORMSG. Cost us an hour the first time.
+  return `<ENVELOPE>
+ <HEADER>
+  <VERSION>1</VERSION>
+  <TALLYREQUEST>Import</TALLYREQUEST>
+  <TYPE>Data</TYPE>
+  <ID>Vouchers</ID>
+ </HEADER>
+ <BODY>
+  <DESC>
+   <STATICVARIABLES>
+    <SVCURRENTCOMPANY>${xmlEscape(input.company)}</SVCURRENTCOMPANY>
+   </STATICVARIABLES>
+  </DESC>
+  <DATA>
+   <TALLYMESSAGE xmlns:UDF="TallyUDF">
+    <VOUCHER VCHTYPE="Receipt" ACTION="Create" OBJVIEW="Accounting Voucher View">
+     <DATE>${date}</DATE>
+     <EFFECTIVEDATE>${date}</EFFECTIVEDATE>
+     <NARRATION>${xmlEscape(narration)}</NARRATION>
+     <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+     <PARTYLEDGERNAME>${xmlEscape(input.party)}</PARTYLEDGERNAME>
+     <ALLLEDGERENTRIES.LIST>
+      <LEDGERNAME>${xmlEscape(input.party)}</LEDGERNAME>
+      <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+      <AMOUNT>${amt}</AMOUNT>
+${billXml}     </ALLLEDGERENTRIES.LIST>
+     <ALLLEDGERENTRIES.LIST>
+      <LEDGERNAME>${xmlEscape(input.destinationLedger)}</LEDGERNAME>
+      <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+      <AMOUNT>${negAmt}</AMOUNT>
+     </ALLLEDGERENTRIES.LIST>
+    </VOUCHER>
+   </TALLYMESSAGE>
+  </DATA>
+ </BODY>
+</ENVELOPE>`;
 }
 
 /** Power-user escape hatch for arbitrary collections. */
