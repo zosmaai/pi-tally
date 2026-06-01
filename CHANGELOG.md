@@ -20,3 +20,5 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 - v0.4: bulk import + bank reconciliation
 - v0.5: month-end close HTN + dual audit log
 - v1.0: full v1 scope per [docs/plans/2026-06-01-pi-tally-design.md](docs/plans/2026-06-01-pi-tally-design.md)
+
+Short-horizon execution plan lives in [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md).

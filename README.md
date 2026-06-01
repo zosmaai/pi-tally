@@ -107,7 +107,7 @@ You can drop your own HTN files in `.pi/pi-tally/htn/` to teach the LLM your fir
 | **v3.5** | Payroll |
 | **v4.0** | Custom TDL auto-deploy, DuckDB offline read-cache |
 
-See the [design doc](docs/plans/2026-06-01-pi-tally-design.md) for the full module breakdown.
+See the [design doc](docs/plans/2026-06-01-pi-tally-design.md) for the full module breakdown, and [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) for the short-horizon execution plan (what's actively next on `main`).
 
 ## Contributing
 

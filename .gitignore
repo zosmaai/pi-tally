@@ -3,9 +3,32 @@ dist/
 *.log
 .env
 .env.local
+.env.*
+!.env.example
 .DS_Store
 .vscode/
 .idea/
 coverage/
 *.tsbuildinfo
 .pi-tally-local/
+
+# pi session state (project-scoped agent state, may contain run history)
+.pi/
+
+# Local pi-tally config (~/.pi-tally/) should never live in the repo,
+# but guard against accidental in-repo copies
+.pi-tally/
+
+# Generated reports — may contain real ledger/financial data
+reports/
+*.snapshot.html
+*-snapshot-*.html
+
+# Tally response captures used for ad-hoc debugging
+fixtures/live/
+*.tally-response.xml
+
+# Editor / OS junk
+Thumbs.db
+*.swp
+*.swo
