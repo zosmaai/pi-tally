@@ -4,6 +4,19 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 
 ## [Unreleased]
 
+### Added — v0.2 PR2 (LLM-callable write tools)
+- **`tally_post_receipt`**, **`tally_post_payment`**, **`tally_reverse_voucher`** are now registered via `pi.registerTool()` and exposed to the LLM in a fresh `pi` session. All three live under `src/tools/write/` and consume the operation layer.
+- `src/envelopes.ts`: `buildPostPaymentEnvelope()` (mirror of Receipt with Dr/Cr swapped) + `PostPaymentInput` type. **10 wire-shape tests**.
+- `src/operations/post-payment.ts`: `postPayment()` follows the same ring flow as `postReceipt`; preview reads "Pay X to Party from Source".
+- `src/operations/reverse-voucher.ts`: `reverseReceiptVoucher()` — thin wrapper that posts an offsetting Payment with auto-generated narration linking back to the original. Production path for undoing a receipt (TallyPrime's XML gateway cannot truly delete vouchers).
+- `src/operations/validate.ts`: `validatePostReceiptInput` / `validatePostPaymentInput` + `WriteValidationError { code: "INVALID_INPUT", field }`. Wired into both ops so structural errors (negative amount, malformed date, empty party) throw BEFORE the confirm modal renders. **13 validation tests**.
+- `src/parse.ts`: `parseTallyError` extended to flag `STATUS=0` + no error tag as a silent-reject (the exact bug that bit us in PR1.5). Order-preserves explicit `LINEERROR`/`ERRORMSG` over the generic hint. **6 tests**.
+- 4 new test files (post-payment env, validate, post-receipt-flow, post-payment, reverse-voucher): **91/91 tests green**, up from 46.
+
+### Fixed — v0.2 PR2
+- **Validation order wart**: negative amounts no longer reach the confirm modal. `postReceipt` and `postPayment` now run `validatePostXInput()` immediately after `assertGate()`, before any UI call.
+- **Silent-reject detection**: TallyPrime responses with `STATUS=0` and no error tag now raise a `TallyError` instead of being treated as success.
+
 ### Added — v0.2 PR1.5 (first real write path, demoed end-to-end)
 - `src/envelopes.ts`: `buildPostReceiptEnvelope()` + `tallyAmount()`. **17 envelope-shape tests** lock the wire format (sign convention, ISDEEMEDPOSITIVE, bill allocation, XML escaping, no VOUCHERNUMBER, etc).
 - `src/operations/post-receipt.ts`: `postReceipt()` ties all rings together (assertGate → confirmWrite → envelope build → client.send → audit). Includes `parsePostVoucherResponse()` with success/no-op detection.
@@ -34,7 +47,7 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 - First HTN trees: `financial-snapshot.md`, `party-statement.md`, `post-receipt.md`
 
 ### Roadmap (not yet released)
-- v0.2: write-gate framework + `tally_create_ledger`, `tally_post_receipt`, `tally_post_payment`
+- v0.2: write-gate framework + `tally_create_ledger` (`tally_post_receipt`, `tally_post_payment`, `tally_reverse_voucher` shipped in PR2)
 - v0.3: GST math + `tally_post_sales_invoice`, `tally_post_purchase`, `tally_post_debit_note`, `tally_post_credit_note`
 - v0.4: bulk import + bank reconciliation
 - v0.5: month-end close HTN + dual audit log

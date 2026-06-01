@@ -93,10 +93,17 @@ export interface TallyError {
 }
 
 /**
- * Detect Tally's various error shapes:
+ * Detect Tally's various error shapes, in order of specificity:
  *   - <ERRORMSG>...</ERRORMSG>          generic gateway error
  *   - <LINEERROR>...</LINEERROR>        per-line import error
- *   - <RESPONSE> wrapper with EXCEPTIONS > 0
+ *   - <RESPONSE> wrapper with EXCEPTIONS > 0 and nothing created
+ *   - <STATUS>0</STATUS> with NO error tag (the silent-reject case
+ *     from PR1: typically a malformed HEADER, e.g. voucher imports
+ *     missing <ID>Vouchers</ID>; Tally rejects the envelope shape
+ *     before any processing and emits no LINEERROR)
+ *
+ * Order matters: a specific message (LINEERROR / ERRORMSG) is always
+ * preferred over the generic STATUS=0 hint.
  */
 export function parseTallyError(xml: string): TallyError | null {
   const errMsg = extractTag(xml, "ERRORMSG");
@@ -111,6 +118,21 @@ export function parseTallyError(xml: string): TallyError | null {
     const reason =
       extractTag(xml, "EXCEPTIONS") ?? "Import reported errors with no objects created";
     return { kind: "response", message: reason, raw: xml };
+  }
+
+  // Silent-reject detection. Only fires on an EXPLICIT STATUS=0 — read
+  // responses (collections, reports) typically omit STATUS entirely and
+  // must NOT be flagged.
+  const status = extractTag(xml, "STATUS");
+  if (status === "0") {
+    return {
+      kind: "response",
+      message:
+        "Tally returned STATUS=0 with no error message. The envelope was likely " +
+        "malformed before processing \u2014 most common cause is a voucher " +
+        "import HEADER missing <ID>Vouchers</ID>, or wrong TALLYREQUEST type.",
+      raw: xml,
+    };
   }
 
   return null;
