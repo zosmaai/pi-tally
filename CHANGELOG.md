@@ -4,6 +4,19 @@ All notable changes to `@zosmaai/pi-tally` are documented here. Format follows [
 
 ## [Unreleased]
 
+### Fixed — false "Education mode" from company names
+- **`tally_health` no longer infers edition from company names.** Previously `isEducationMode` was set when any loaded company name matched `/educational|sample|company demo/i`. A real, licensed company literally named **"PHOENIX EDUCATIONAL INSTITUTE PRIVATE LIMITED"** tripped the regex, so a genuine **Silver** license was reported as *Educational Mode*.
+- Edition is now resolved **authoritatively** from Tally's own `$$LicenseInfo` function (`IsEducationalMode`, `IsSilver`, `IsGold`, `SerialNumber`, `AccountId`). Company names are never consulted.
+- `tally_health` output now shows an **Edition** line (e.g. `Edition: Silver (Serial 784409490, arjun@zosma.ai)`); `Unknown` when Tally does not report `$$LicenseInfo`.
+
+### Added — license probe plumbing
+- `src/envelopes.ts`: `buildLicenseInfoEnvelope(param)` — `Export`/`Function` request for `$$LicenseInfo` with a `<PARAM>`.
+- `src/parse.ts`: `parseLicenseInfoResult()` + `parseTallyLogical()`.
+- `src/client.ts`: `licenseInfo(param)` and `probeLicense()` (returns a typed `LicenseProbe`).
+- `src/types.ts`: `LicenseProbe`, `TallyEdition`; `HealthInfo` gains `edition`, `licenseSerial`, `licenseAccountId`.
+- `src/tools/read/health.ts`: exported pure `deriveEdition(license)`.
+- **11 new tests** (`test/parse/license.test.ts`) incl. the exact regression: an `EDUCATIONAL`-named company must not flip a Silver license. **102/102 green.**
+
 ### Added — v0.2 PR2 (LLM-callable write tools)
 - **`tally_post_receipt`**, **`tally_post_payment`**, **`tally_reverse_voucher`** are now registered via `pi.registerTool()` and exposed to the LLM in a fresh `pi` session. All three live under `src/tools/write/` and consume the operation layer.
 - `src/envelopes.ts`: `buildPostPaymentEnvelope()` (mirror of Receipt with Dr/Cr swapped) + `PostPaymentInput` type. **10 wire-shape tests**.

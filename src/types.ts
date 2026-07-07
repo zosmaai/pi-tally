@@ -135,13 +135,36 @@ export interface OutstandingRow {
   ageBucket: "0-30" | "31-60" | "61-90" | "90+";
 }
 
+/**
+ * Result of the authoritative `$$LicenseInfo` edition probe.
+ * `supported: false` means Tally did not answer (old build) — treat as unknown.
+ */
+export interface LicenseProbe {
+  supported: boolean;
+  isEducationalMode?: boolean;
+  isSilver?: boolean;
+  isGold?: boolean;
+  serialNumber?: string;
+  accountId?: string;
+}
+
+export type TallyEdition = "Educational" | "Silver" | "Gold" | "Licensed" | "Unknown";
+
 export interface HealthInfo {
   reachable: boolean;
   responseMs: number;
   bindAddress: "localhost-only" | "all-interfaces" | "unknown";
   productName?: string;
   productVersion?: string;
+  /**
+   * True ONLY when Tally's own $$LicenseInfo:IsEducationalMode returns Yes.
+   * Never inferred from company names.
+   */
   isEducationMode: boolean;
+  /** Edition resolved from $$LicenseInfo, or "Unknown" if unavailable. */
+  edition: TallyEdition;
+  licenseSerial?: string;
+  licenseAccountId?: string;
   companies: CompanyInfo[];
   activeCompany?: string;
   writeGates: WriteGateState;

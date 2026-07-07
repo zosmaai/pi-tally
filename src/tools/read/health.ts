@@ -14,7 +14,23 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { TallyClient, TallyError } from "../../client.js";
 import { loadConfig, formatINR } from "../../config.js";
-import type { HealthInfo } from "../../types.js";
+import type { HealthInfo, LicenseProbe, TallyEdition } from "../../types.js";
+
+/**
+ * Resolve the Tally edition from the authoritative $$LicenseInfo probe.
+ *
+ * Intentionally takes ONLY the license probe — never company names. This is
+ * the regression fix: a real company such as "PHOENIX EDUCATIONAL INSTITUTE
+ * PRIVATE LIMITED" must NOT flip the edition to Educational.
+ */
+export function deriveEdition(license: LicenseProbe): TallyEdition {
+  if (!license.supported) return "Unknown";
+  if (license.isEducationalMode) return "Educational";
+  if (license.isGold) return "Gold";
+  if (license.isSilver) return "Silver";
+  // Answered the probe, not educational, but edition flags unknown.
+  return "Licensed";
+}
 
 const PARAMS = Type.Object({});
 
@@ -61,14 +77,29 @@ export function registerHealthTool(pi: ExtensionAPI): void {
       }
 
       const activeCompany = cfg.defaultCompany ?? companies[0]?.name;
-      const isEducationMode =
-        companies.some((c) => /educational|sample|company demo/i.test(c.name)) ?? false;
+
+      // Authoritative edition detection via Tally's own $$LicenseInfo function.
+      // NEVER infer edition from company names — a company literally named
+      // "... EDUCATIONAL INSTITUTE ..." would false-positive a name heuristic.
+      let license: LicenseProbe = { supported: false };
+      if (reachable) {
+        try {
+          license = await client.probeLicense(signal ?? undefined);
+        } catch {
+          license = { supported: false };
+        }
+      }
+      const edition = deriveEdition(license);
+      const isEducationMode = edition === "Educational";
 
       const health: HealthInfo = {
         reachable,
         responseMs,
         bindAddress,
         isEducationMode,
+        edition,
+        licenseSerial: license.serialNumber,
+        licenseAccountId: license.accountId,
         companies,
         activeCompany,
         writeGates: cfg.writeGates,
@@ -92,6 +123,11 @@ function formatHealthForLlm(h: HealthInfo, errMsg?: string): string {
     return lines.join("\n");
   }
   lines.push(`Response time: ${h.responseMs}ms`);
+  const editionLine =
+    h.edition === "Unknown"
+      ? "Edition: Unknown (Tally did not report $$LicenseInfo)"
+      : `Edition: ${h.edition}${h.licenseSerial ? ` (Serial ${h.licenseSerial}${h.licenseAccountId ? `, ${h.licenseAccountId}` : ""})` : ""}`;
+  lines.push(editionLine);
   lines.push(`Network bind: ${h.bindAddress}`);
   if (h.bindAddress === "all-interfaces") {
     lines.push(
@@ -99,7 +135,9 @@ function formatHealthForLlm(h: HealthInfo, errMsg?: string): string {
     );
   }
   if (h.isEducationMode) {
-    lines.push("ℹ️  Educational Mode detected — voucher dates restricted to 1st/2nd/last of month.");
+    lines.push(
+      "ℹ️  Educational Mode detected (via $$LicenseInfo) — voucher dates restricted to 1st/2nd/last of month.",
+    );
   }
   lines.push("");
   lines.push(`Loaded companies (${h.companies.length}):`);

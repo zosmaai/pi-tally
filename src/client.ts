@@ -16,8 +16,13 @@
  */
 
 import { connect } from "node:net";
-import { parseCompanies, parseTallyError } from "./parse.js";
-import type { CompanyInfo } from "./types.js";
+import {
+  parseCompanies,
+  parseTallyError,
+  parseLicenseInfoResult,
+  parseTallyLogical,
+} from "./parse.js";
+import type { CompanyInfo, LicenseProbe } from "./types.js";
 
 export interface TallyClientConfig {
   /** Base URL of the Tally gateway. Default: http://localhost:9000 */
@@ -122,6 +127,53 @@ export class TallyClient {
     const { buildListCompaniesEnvelope } = await import("./envelopes.js");
     const body = await this.send(buildListCompaniesEnvelope());
     return parseCompanies(body);
+  }
+
+  /**
+   * Query a single `$$LicenseInfo` attribute. Returns the scalar value
+   * ("Yes"/"No"/serial/account) or undefined if Tally couldn't resolve it.
+   * Never throws on a Tally-level error — an unresolvable attribute is a
+   * normal "unknown" outcome, not a transport failure.
+   */
+  async licenseInfo(param: string, signal?: AbortSignal): Promise<string | undefined> {
+    const { buildLicenseInfoEnvelope } = await import("./envelopes.js");
+    try {
+      const body = await this.send(buildLicenseInfoEnvelope(param), signal);
+      return parseLicenseInfoResult(body);
+    } catch (e) {
+      if (e instanceof TallyError && e.kind === "response") return undefined;
+      throw e;
+    }
+  }
+
+  /**
+   * Authoritative edition/license probe via Tally's `$$LicenseInfo` function.
+   *
+   * This is the ONLY correct way to determine Educational vs Silver/Gold.
+   * Do NOT infer edition from company names — a real company named e.g.
+   * "... EDUCATIONAL INSTITUTE ..." would false-positive any name heuristic.
+   *
+   * `supported` is false when Tally answers nothing for IsEducationalMode
+   * (very old build / feature unavailable); callers then treat edition as
+   * unknown rather than guessing.
+   */
+  async probeLicense(signal?: AbortSignal): Promise<LicenseProbe> {
+    const edu = await this.licenseInfo("IsEducationalMode", signal);
+    if (edu === undefined) return { supported: false };
+    const [silver, gold, serial, account] = await Promise.all([
+      this.licenseInfo("IsSilver", signal),
+      this.licenseInfo("IsGold", signal),
+      this.licenseInfo("SerialNumber", signal),
+      this.licenseInfo("AccountId", signal),
+    ]);
+    return {
+      supported: true,
+      isEducationalMode: parseTallyLogical(edu),
+      isSilver: parseTallyLogical(silver),
+      isGold: parseTallyLogical(gold),
+      serialNumber: serial,
+      accountId: account,
+    };
   }
 
   /**
