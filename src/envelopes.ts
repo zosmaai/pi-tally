@@ -83,6 +83,33 @@ function renderStaticVars(vars: StaticVars): string {
 // --------------------------------------------------------------------------
 
 /** Probe: list loaded companies. Doubles as a reachability test. */
+/**
+ * Query a single Tally `$$LicenseInfo` attribute (e.g. "IsEducationalMode",
+ * "IsSilver", "IsGold", "SerialNumber", "AccountId").
+ *
+ * This is the AUTHORITATIVE edition/license probe. Do NOT infer edition from
+ * company names — a real company literally named "... EDUCATIONAL INSTITUTE
+ * ..." will false-positive any name heuristic. Tally answers this function
+ * with the actual license state ("Yes"/"No"/value).
+ */
+export function buildLicenseInfoEnvelope(param: string): string {
+  return `<ENVELOPE>
+ <HEADER>
+  <VERSION>1</VERSION>
+  <TALLYREQUEST>Export</TALLYREQUEST>
+  <TYPE>Function</TYPE>
+  <ID>$$LicenseInfo</ID>
+ </HEADER>
+ <BODY>
+  <DESC>
+   <FUNCPARAMLIST>
+    <PARAM>${param}</PARAM>
+   </FUNCPARAMLIST>
+  </DESC>
+ </BODY>
+</ENVELOPE>`;
+}
+
 export function buildListCompaniesEnvelope(): string {
   return `<ENVELOPE>
  <HEADER>

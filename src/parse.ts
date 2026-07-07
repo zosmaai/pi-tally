@@ -161,6 +161,39 @@ export function parseCompanies(xml: string): CompanyInfo[] {
 }
 
 // --------------------------------------------------------------------------
+// License info ($$LicenseInfo function responses)
+// --------------------------------------------------------------------------
+
+/**
+ * Extract the scalar value of a `$$LicenseInfo` function response.
+ *
+ * Shape:
+ *   <ENVELOPE><HEADER>...<STATUS>1</STATUS></HEADER>
+ *     <BODY><DESC>...</DESC><DATA><RESULT TYPE="Logical">No</RESULT></DATA></BODY>
+ *   </ENVELOPE>
+ *
+ * Returns the trimmed RESULT text (e.g. "No", "Yes", "784409490",
+ * "arjun@zosma.ai"), or undefined when the function returned no RESULT
+ * (unsupported param / older Tally build). Callers must treat undefined as
+ * "unknown", never as a default edition.
+ */
+export function parseLicenseInfoResult(xml: string): string | undefined {
+  const result = extractTag(xml, "RESULT");
+  if (result === undefined) return undefined;
+  const trimmed = result.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/** Interpret a Tally Logical result ("Yes"/"No") as a boolean, else undefined. */
+export function parseTallyLogical(value: string | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  const v = value.trim().toLowerCase();
+  if (v === "yes" || v === "true" || v === "1") return true;
+  if (v === "no" || v === "false" || v === "0") return false;
+  return undefined;
+}
+
+// --------------------------------------------------------------------------
 // Ledgers
 // --------------------------------------------------------------------------
 
